@@ -1,0 +1,39 @@
+/* Dashboard and Admin Styles */
+
+@layer components {
+    .dashboard-grid {
+        @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6;
+    }
+
+    .stat-card {
+        @apply bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-shadow duration-200;
+    }
+
+    .stat-icon {
+        @apply p-3 rounded-lg text-white shadow-sm;
+    }
+
+    .data-table-container {
+        @apply bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden;
+    }
+
+    .data-table {
+        @apply w-full text-left border-collapse;
+    }
+
+    .data-table th {
+        @apply pb-3 px-6 pt-6 text-sm font-medium text-gray-500 border-b border-gray-100 bg-gray-50/50 uppercase tracking-wider;
+    }
+
+    .data-table td {
+        @apply py-4 px-6 border-b border-gray-50 text-gray-700;
+    }
+
+    .data-table tr:last-child td {
+        @apply border-b-0;
+    }
+
+    .data-table tr:hover td {
+        @apply bg-gray-50/30;
+    }
+}

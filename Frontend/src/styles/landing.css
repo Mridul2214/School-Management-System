@@ -1,0 +1,49 @@
+/* Landing Page Styles using Tailwind @apply for complex custom animations */
+
+@layer components {
+    .hero-gradient {
+        @apply bg-gradient-to-b from-blue-50/50 to-white;
+    }
+
+    .nav-link {
+        @apply text-gray-600 hover:text-blue-600 font-medium transition-colors duration-200;
+    }
+
+    .btn-get-started {
+        @apply bg-blue-600 text-white px-6 py-2.5 rounded-full font-medium hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 hover:shadow-blue-600/30 transform hover:-translate-y-0.5;
+    }
+
+    .feature-card {
+        @apply p-8 rounded-2xl bg-gray-50 hover:bg-white border border-gray-100 hover:shadow-xl transition-all duration-300 cursor-default;
+    }
+
+    .feature-icon-wrapper {
+        @apply w-14 h-14 bg-white rounded-xl shadow-sm flex items-center justify-center mb-6 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors duration-300;
+    }
+}
+
+.animate-blob {
+    animation: blob 7s infinite;
+}
+
+.animation-delay-2000 {
+    animation-delay: 2s;
+}
+
+@keyframes blob {
+    0% {
+        transform: translate(0px, 0px) scale(1);
+    }
+
+    33% {
+        transform: translate(30px, -50px) scale(1.1);
+    }
+
+    66% {
+        transform: translate(-20px, 20px) scale(0.9);
+    }
+
+    100% {
+        transform: translate(0px, 0px) scale(1);
+    }
+}
