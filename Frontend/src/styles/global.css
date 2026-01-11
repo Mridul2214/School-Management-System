@@ -28,3 +28,74 @@
     @apply bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow;
   }
 }
+
+/* Print Styles for Document Creator */
+/* Print Styles for Document Creator */
+@media print {
+  @page {
+    margin: 1cm;
+    size: auto;
+  }
+
+  /* Hide everything by default */
+  body * {
+    visibility: hidden;
+    height: 0;
+    overflow: hidden;
+  }
+
+  /* Only show the document preview container and its children */
+  #document-preview,
+  #document-preview * {
+    visibility: visible;
+    height: auto;
+    overflow: visible;
+  }
+
+  /* Reset positioning for the preview to take up the whole page */
+  #document-preview {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 2rem !important;
+    background: white !important;
+    box-shadow: none !important;
+    border: none !important;
+    display: block !important;
+  }
+
+  /* Ensure text is standard black for printing */
+  #document-preview {
+    color: black !important;
+    font-size: 12pt;
+    line-height: 1.5;
+  }
+
+  /* Typography fixes for print */
+  #document-preview h1,
+  #document-preview h2,
+  #document-preview h3 {
+    page-break-after: avoid;
+    break-after: avoid;
+    color: black !important;
+  }
+
+  #document-preview p,
+  #document-preview li {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  #document-preview pre {
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  /* Hide print-specific buttons if any are inside the preview */
+  .no-print {
+    display: none !important;
+  }
+}

@@ -11,6 +11,7 @@ import CourseList from './pages/Admin/Courses/CourseList';
 import AddCourse from './pages/Admin/Courses/AddCourse';
 import SubjectList from './pages/Admin/Subjects/SubjectList';
 import AddSubject from './pages/Admin/Subjects/AddSubject';
+import EditSubject from './pages/Admin/Subjects/EditSubject';
 import UserList from './pages/Admin/Users/UserList';
 import AddUser from './pages/Admin/Users/AddUser';
 import EditUser from './pages/Admin/Users/EditUser';
@@ -37,26 +38,30 @@ import AIChatbot from './pages/Tools/AIChatbot';
 
 const PrivateRoute = ({ children, allowedRoles }) => {
   const { user, loading } = useAuth();
-  //...
 
-
-  // If data is still loading, show nothing or a spinner
   if (loading) {
-    return <div className="h-screen flex items-center justify-center">Loading...</div>;
+    return (
+      <div className="h-screen flex flex-col items-center justify-center bg-gray-50">
+        <div className="h-12 w-12 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p className="text-gray-500 font-bold tracking-widest uppercase text-xs">Verifying Session...</p>
+      </div>
+    );
   }
 
-  // Since we are mocking, as long as we have a user, we are good.
-  // In strict mode we check roles, but for now let's be permissive or check if needed.
   if (!user) {
     return <Navigate to="/login" />;
   }
 
-  // simplified role check for the bypass
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
-    // Optionally you can redirect to an unauthorized page or dashboard
-    // return <Navigate to="/" />;
-    // For testing, let's just warn or allow
-    console.warn(`User role ${user.role} not explicitly in allowed ${allowedRoles}`);
+  // ALLOWANCE: Let Staff and Admins view Student pages for debugging/management
+  const isAuthorized = !allowedRoles ||
+    allowedRoles.includes(user.role) ||
+    ((user.role === 'Staff' || user.role === 'Administrator') && allowedRoles.includes('Student'));
+
+  if (!isAuthorized) {
+    console.warn(`Access Denied: Role ${user.role} not in ${allowedRoles}`);
+    const fallback = user.role === 'Administrator' ? '/admin/dashboard' :
+      user.role === 'Staff' ? '/staff/dashboard' : '/student/dashboard';
+    return <Navigate to={fallback} replace />;
   }
 
   return <Layout>{children}</Layout>;
@@ -106,6 +111,7 @@ function App() {
           {/* Subject Routes */}
           <Route path="/admin/subjects" element={<PrivateRoute allowedRoles={['Administrator']}><SubjectList /></PrivateRoute>} />
           <Route path="/admin/subjects/add" element={<PrivateRoute allowedRoles={['Administrator']}><AddSubject /></PrivateRoute>} />
+          <Route path="/admin/subjects/edit/:id" element={<PrivateRoute allowedRoles={['Administrator']}><EditSubject /></PrivateRoute>} />
           {/* User Management Routes */}
           <Route path="/admin/users" element={<PrivateRoute allowedRoles={['Administrator']}><UserList /></PrivateRoute>} />
           <Route path="/admin/users/add" element={<PrivateRoute allowedRoles={['Administrator']}><AddUser /></PrivateRoute>} />
@@ -124,32 +130,32 @@ function App() {
 
           {/* Staff Routes */}
           <Route path="/staff/dashboard" element={
-            <PrivateRoute allowedRoles={['Staff']}>
+            <PrivateRoute allowedRoles={['Staff', 'Administrator']}>
               <StaffDashboard />
             </PrivateRoute>
           } />
           <Route path="/staff/attendance" element={
-            <PrivateRoute allowedRoles={['Staff']}>
+            <PrivateRoute allowedRoles={['Staff', 'Administrator']}>
               <StudentAttendanceManager />
             </PrivateRoute>
           } />
           <Route path="/staff/subjects" element={
-            <PrivateRoute allowedRoles={['Staff']}>
+            <PrivateRoute allowedRoles={['Staff', 'Administrator']}>
               <MySubjects />
             </PrivateRoute>
           } />
           <Route path="/staff/marks" element={
-            <PrivateRoute allowedRoles={['Staff']}>
+            <PrivateRoute allowedRoles={['Staff', 'Administrator']}>
               <MarksEntry />
             </PrivateRoute>
           } />
           <Route path="/staff/add-student" element={
-            <PrivateRoute allowedRoles={['Staff']}>
+            <PrivateRoute allowedRoles={['Staff', 'Administrator']}>
               <AddStudent />
             </PrivateRoute>
           } />
           <Route path="/staff/students" element={
-            <PrivateRoute allowedRoles={['Staff']}>
+            <PrivateRoute allowedRoles={['Staff', 'Administrator']}>
               <StudentList />
             </PrivateRoute>
           } />

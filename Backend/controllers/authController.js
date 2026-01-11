@@ -15,13 +15,12 @@ const generateToken = (id) => {
 const loginUser = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
 
-    // Support both Email and User ID (Staff ID / Reg No)
     const user = await User.findOne({
         $or: [
             { email: email },
             { userId: email }
         ]
-    });
+    }).populate('department', 'name');
 
     if (user && (await user.matchPassword(password))) {
         res.json({
@@ -30,6 +29,8 @@ const loginUser = asyncHandler(async (req, res) => {
             name: `${user.firstName} ${user.lastName}`,
             email: user.email,
             role: user.role,
+            department: user.department,
+            semester: user.semester,
             token: generateToken(user._id),
         });
     } else {
@@ -47,7 +48,7 @@ const registerUser = asyncHandler(async (req, res) => {
         // Staff/Admin specific
         department, designation,
         // Student specific
-        registrationNumber, course, semester
+        semester
     } = req.body;
 
     const userExists = await User.findOne({ email });
@@ -59,7 +60,6 @@ const registerUser = asyncHandler(async (req, res) => {
 
     let user;
     const finalDept = department === '' ? null : department;
-    const finalCourse = course === '' ? null : course;
 
     if (role === 'Administrator') {
         user = await Administrator.create({
@@ -81,7 +81,7 @@ const registerUser = asyncHandler(async (req, res) => {
     } else if (role === 'Student') {
         user = await Student.create({
             userId, email, password, firstName, lastName, role,
-            course: finalCourse, department: finalDept,
+            department: finalDept,
             registrationNumber: userId,
             semester: semester || 1
         });
@@ -97,6 +97,8 @@ const registerUser = asyncHandler(async (req, res) => {
             name: `${user.firstName} ${user.lastName}`,
             email: user.email,
             role: user.role,
+            department: user.department,
+            semester: user.semester,
             token: generateToken(user._id),
         });
     } else {

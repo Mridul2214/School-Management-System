@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Search, Trash2, Edit, BookOpen, User } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import api from '../../../api/axios';
 
 const SubjectList = () => {
+    const navigate = useNavigate();
     const [subjects, setSubjects] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -83,7 +84,10 @@ const SubjectList = () => {
                                         {sub.code}
                                     </div>
                                     <div className="flex space-x-2">
-                                        <button className="action-btn">
+                                        <button
+                                            onClick={() => navigate(`/admin/subjects/edit/${sub._id}`)}
+                                            className="action-btn"
+                                        >
                                             <Edit className="h-4 w-4" />
                                         </button>
                                         <button

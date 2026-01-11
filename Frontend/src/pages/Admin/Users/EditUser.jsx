@@ -12,7 +12,7 @@ const EditUser = () => {
 
     // Dropdown Data
     const [departments, setDepartments] = useState([]);
-    const [courses, setCourses] = useState([]);
+    // courses removed
 
     const [formData, setFormData] = useState({
         firstName: '',
@@ -22,7 +22,7 @@ const EditUser = () => {
         role: '',
         department: '',
         designation: '',
-        course: '',
+        // course: '', removed
         semester: 1,
         isActive: true,
         isHod: false,
@@ -32,14 +32,12 @@ const EditUser = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [deptRes, courseRes, userRes] = await Promise.all([
+                const [deptRes, userRes] = await Promise.all([
                     api.get('/departments'),
-                    api.get('/courses'),
                     api.get(`/users/${id}`)
                 ]);
 
                 setDepartments(deptRes.data);
-                setCourses(courseRes.data);
 
                 const userData = userRes.data;
                 setFormData({
@@ -50,7 +48,7 @@ const EditUser = () => {
                     role: userData.role || '',
                     department: userData.department?._id || userData.department || '',
                     designation: userData.designation || '',
-                    course: userData.course?._id || userData.course || '',
+                    // course: userData.course?._id || userData.course || '', removed
                     semester: userData.semester || 1,
                     isActive: userData.isActive !== undefined ? userData.isActive : true,
                     isHod: userData.designation?.toLowerCase().includes('hod') || false,
@@ -206,20 +204,7 @@ const EditUser = () => {
 
                         {formData.role === 'Student' ? (
                             <>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Course</label>
-                                    <select
-                                        name="course"
-                                        value={formData.course}
-                                        onChange={handleChange}
-                                        className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-bold text-gray-700"
-                                    >
-                                        <option value="">Select Course</option>
-                                        {courses.map(course => (
-                                            <option key={course._id} value={course._id}>{course.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
+                                { /* Course dropdown removed */}
                                 <div className="space-y-2">
                                     <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Semester</label>
                                     <input

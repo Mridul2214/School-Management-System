@@ -13,30 +13,29 @@ const protect = asyncHandler(async (req, res, next) => {
             token = req.headers.authorization.split(' ')[1];
             // console.log(`Auth Middleware: Received token: ${token}`); // Debug log
 
-            if (token.startsWith('mock_token')) {
-                // Bypass for development - Extracting dynamic ID and Role
-                const parts = token.split('_');
-                const mockId = parts[2] || '507f1f77bcf86cd799439011';
-                const mockRole = parts[3] || 'Administrator';
-
-                req.user = {
-                    _id: mockId,
-                    name: `Demo ${mockRole}`,
-                    email: `${mockRole.toLowerCase()}@demo.com`,
-                    role: mockRole,
-                    isAdmin: mockRole === 'Administrator'
-                };
-                next();
-                return;
-            }
+            // Mock token bypass removed to enforce real authentication
+            /*
+           if (token.startsWith('mock_token')) {
+               // ... removed
+           } 
+           */
 
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            // console.log('Decoded Token:', decoded);
 
             req.user = await User.findById(decoded.id).select('-password');
 
+            if (!req.user) {
+                console.log('User not found in DB with ID:', decoded.id);
+                res.status(401);
+                throw new Error('Not authorized, user not found');
+            }
+
+            // console.log('Auth Success. User Role:', req.user.role);
+
             next();
         } catch (error) {
-            console.error(error);
+            console.error('Auth Error:', error.message);
             res.status(401);
             throw new Error('Not authorized, token failed');
         }
@@ -52,8 +51,8 @@ const admin = (req, res, next) => {
     if (req.user && req.user.role === 'Administrator') {
         next();
     } else {
-        res.status(401);
-        throw new Error('Not authorized as an admin');
+        console.log(`Access Denied. User: ${req.user?.email}, Role: ${req.user?.role}`);
+        res.status(401).json({ message: 'Not authorized as an admin' });
     }
 };
 
@@ -61,8 +60,8 @@ const staff = (req, res, next) => {
     if (req.user && (req.user.role === 'Staff' || req.user.role === 'Administrator')) {
         next();
     } else {
-        res.status(401);
-        throw new Error('Not authorized as staff');
+        console.log(`Access Denied (Staff). User: ${req.user?.email}, Role: ${req.user?.role}`);
+        res.status(401).json({ message: 'Not authorized as staff' });
     }
 };
 

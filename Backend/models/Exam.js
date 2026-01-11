@@ -11,9 +11,9 @@ const examSchema = new mongoose.Schema(
             enum: ['Monthly Test', 'Mid Term', 'Final Exam', 'Practical'],
             required: true
         },
-        course: {
+        department: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'Course',
+            ref: 'Department',
             required: true
         },
         semester: {

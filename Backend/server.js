@@ -35,6 +35,8 @@ const feeRoutes = require('./routes/feeRoutes');
 const staffAttendanceRoutes = require('./routes/staffAttendanceRoutes');
 const examRoutes = require('./routes/examRoutes');
 const academicCalendarRoutes = require('./routes/academicCalendarRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
+
 
 // Mount Routes
 app.use('/api/auth', authRoutes);
@@ -48,6 +50,7 @@ app.use('/api/fees', feeRoutes);
 app.use('/api/staff-attendance', staffAttendanceRoutes);
 app.use('/api/exams', examRoutes);
 app.use('/api/academic-calendar', academicCalendarRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Error Middleware
 app.use(notFound);

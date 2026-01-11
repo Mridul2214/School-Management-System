@@ -12,12 +12,10 @@ const AttendanceManager = () => {
 
     // Selection State
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-    const [selectedCourse, setSelectedCourse] = useState('');
     const [selectedSubject, setSelectedSubject] = useState('');
-    const [selectedSemester, setSelectedSemester] = useState('');
+    const [selectedSemester, setSelectedSemester] = useState('1'); // Default to 1st Semester
 
     // Data State
-    const [courses, setCourses] = useState([]);
     const [subjects, setSubjects] = useState([]);
     const [students, setStudents] = useState([]);
     const [attendanceData, setAttendanceData] = useState({}); // { studentId: 'Present' | 'Absent' | 'Late' }
@@ -26,14 +24,15 @@ const AttendanceManager = () => {
     const [stats, setStats] = useState({ present: 0, absent: 0, late: 0, total: 0 });
 
     useEffect(() => {
-        fetchInitialData();
+        // Fetch subjects on mount
+        fetchSubjects();
     }, []);
 
     useEffect(() => {
-        if (selectedCourse && selectedSubject && selectedDate) {
+        if (selectedSubject && selectedDate && selectedSemester) {
             fetchAttendanceAndStudents();
         }
-    }, [selectedCourse, selectedSubject, selectedDate]);
+    }, [selectedSubject, selectedDate, selectedSemester]);
 
     // Recalculate stats whenever attendance data changes
     useEffect(() => {
@@ -47,41 +46,30 @@ const AttendanceManager = () => {
         setStats({ present: p, absent: a, late: l, total });
     }, [attendanceData, students]);
 
-    const fetchInitialData = async () => {
+    const fetchSubjects = async () => {
         try {
-            const coursesRes = await api.get('/courses');
-            setCourses(coursesRes.data);
-        } catch (error) {
-            console.error("Failed to fetch initial data", error);
-        }
-    };
-
-    const fetchSubjects = async (courseId) => {
-        try {
-            const res = await api.get(`/subjects?courseId=${courseId}`);
+            const res = await api.get(`/subjects`);
             setSubjects(res.data);
         } catch (error) {
             console.error("Failed to fetch subjects");
         }
     };
 
-    const handleCourseChange = (e) => {
-        const courseId = e.target.value;
-        setSelectedCourse(courseId);
-        setSelectedSubject('');
-        if (courseId) fetchSubjects(courseId);
-    };
+    // handleCourseChange removed
 
     const fetchAttendanceAndStudents = async () => {
         setLoading(true);
         try {
-            // 1. Fetch Students for this course
-            const studentsRes = await api.get(`/attendance/students?courseId=${selectedCourse}`);
+            // 1. Fetch Students (Filtered by Semester & Subject Department if possible, but mainly Semester here)
+            // Assuming getStudents supports semester query. 
+            // Also we might want to filter by the subject's department if selectedSubject is fully populated, 
+            // but for now let's just use semester as requested.
+            const studentsRes = await api.get(`/users/students?semester=${selectedSemester}`);
             const fetchedStudents = studentsRes.data;
             setStudents(fetchedStudents);
 
             // 2. Fetch existing attendance for this date/subject
-            const attendanceRes = await api.get(`/attendance?date=${selectedDate}&courseId=${selectedCourse}&subjectId=${selectedSubject}`);
+            const attendanceRes = await api.get(`/attendance?date=${selectedDate}&subjectId=${selectedSubject}`);
 
             const newAttendanceMap = {};
 
@@ -129,8 +117,8 @@ const AttendanceManager = () => {
 
             await api.post('/attendance', {
                 date: selectedDate,
-                courseId: selectedCourse,
                 subjectId: selectedSubject,
+                // courseId removed
                 records
             });
             alert('Attendance saved successfully!');
@@ -180,14 +168,15 @@ const AttendanceManager = () => {
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Course</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Semester / Class</label>
                     <select
-                        value={selectedCourse}
-                        onChange={handleCourseChange}
+                        value={selectedSemester}
+                        onChange={(e) => setSelectedSemester(e.target.value)}
                         className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition"
                     >
-                        <option value="">Select Course</option>
-                        {courses.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                        {[1, 2, 3, 4, 5, 6, 7, 8].map(sem => (
+                            <option key={sem} value={sem}>{sem} Semester</option>
+                        ))}
                     </select>
                 </div>
 
@@ -197,7 +186,6 @@ const AttendanceManager = () => {
                         value={selectedSubject}
                         onChange={(e) => setSelectedSubject(e.target.value)}
                         className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition"
-                        disabled={!selectedCourse}
                     >
                         <option value="">Select Subject</option>
                         {subjects.map(s => <option key={s._id} value={s._id}>{s.name} ({s.code})</option>)}
@@ -207,7 +195,7 @@ const AttendanceManager = () => {
                 <div>
                     <button
                         onClick={() => fetchAttendanceAndStudents()}
-                        disabled={!selectedCourse || !selectedSubject}
+                        disabled={!selectedSubject}
                         className="w-full btn-primary py-2 justify-center"
                     >
                         Load Sheet
@@ -216,7 +204,7 @@ const AttendanceManager = () => {
             </div>
 
             {/* Attendance Sheet */}
-            {selectedCourse && selectedSubject && (
+            {selectedSubject && (
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                     <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
                         <div className="flex items-center space-x-2">

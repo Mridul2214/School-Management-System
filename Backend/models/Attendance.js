@@ -12,9 +12,9 @@ const attendanceSchema = new mongoose.Schema(
             ref: 'Student', // Refers to the discriminator
             required: true
         },
-        course: {
+        department: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'Course',
+            ref: 'Department',
             required: true
         },
         subject: {

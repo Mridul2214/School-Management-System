@@ -4,14 +4,18 @@ import api from '../api/axios';
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);    // Load user from storage on mount or set default admin
+    const [user, setUser] = useState(() => {
+        const storedUser = localStorage.getItem('user');
+        return storedUser ? JSON.parse(storedUser) : null;
+    });
+    const [loading, setLoading] = useState(false); // No longer need initial true since we read in useState
+
     useEffect(() => {
-        let storedUser = localStorage.getItem('user');
-        if (storedUser) {
+        // Sync check in case of external storage changes
+        const storedUser = localStorage.getItem('user');
+        if (storedUser && !user) {
             setUser(JSON.parse(storedUser));
         }
-        setLoading(false);
     }, []);
 
     const login = async (email, password) => {
@@ -34,7 +38,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+        <AuthContext.Provider value={{ user, setUser, login, register, logout, loading }}>
             {!loading && children}
         </AuthContext.Provider>
     );

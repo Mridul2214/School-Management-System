@@ -15,8 +15,8 @@ const MySubjects = () => {
                 // In production: api.get(`/subjects/faculty/${user.id}`)
                 const { data } = await api.get('/subjects');
                 // Mock filtering to simulate "My Subjects"
-                const mySubs = data.filter(s => s.faculty?._id === user?.id || s.faculty === user?.id);
-                setSubjects(mySubs.length > 0 ? mySubs : data.slice(0, 3)); // Fallback to first 3 for demo
+                const mySubs = data.filter(s => s.faculty?._id === user?._id || s.faculty === user?._id);
+                setSubjects(mySubs);
             } catch (error) {
                 console.error("Error fetching subjects", error);
             } finally {

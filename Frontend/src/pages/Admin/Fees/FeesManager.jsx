@@ -13,7 +13,7 @@ const FeesManager = () => {
     const [showFeeModal, setShowFeeModal] = useState(false);
     const [feeForm, setFeeForm] = useState({
         name: '', type: 'Tuition', amount: '', dueDate: '',
-        description: '', department: '', course: '', semester: ''
+        description: '', department: '', semester: ''
     });
 
     // Payment Form
@@ -26,11 +26,10 @@ const FeesManager = () => {
 
     // Data for dropdowns
     const [departments, setDepartments] = useState([]);
-    const [courses, setCourses] = useState([]);
 
     useEffect(() => {
         fetchFees();
-        fetchDepsAndCourses();
+        fetchDepartments();
     }, []);
 
     const fetchFees = async () => {
@@ -45,14 +44,10 @@ const FeesManager = () => {
         }
     };
 
-    const fetchDepsAndCourses = async () => {
+    const fetchDepartments = async () => {
         try {
-            const [d, c] = await Promise.all([
-                api.get('/departments'),
-                api.get('/courses')
-            ]);
-            setDepartments(d.data);
-            setCourses(c.data);
+            const { data } = await api.get('/departments');
+            setDepartments(data.data || data); // Handle both {data:[]} and []
         } catch (error) { console.error(error); }
     };
 
@@ -62,7 +57,7 @@ const FeesManager = () => {
             await api.post('/fees', feeForm);
             setShowFeeModal(false);
             fetchFees();
-            setFeeForm({ name: '', type: 'Tuition', amount: '', dueDate: '', description: '', department: '', course: '', semester: '' });
+            setFeeForm({ name: '', type: 'Tuition', amount: '', dueDate: '', description: '', department: '', semester: '' });
         } catch (error) { alert("Failed to create fee"); }
     };
 
@@ -151,7 +146,7 @@ const FeesManager = () => {
                                 </div>
                                 <h3 className="text-lg font-bold text-gray-800 mb-1">{fee.name}</h3>
                                 {fee.department && <p className="text-sm text-gray-500">Dept: {fee.department.name}</p>}
-                                {fee.course && <p className="text-sm text-gray-500">Course: {fee.course.name}</p>}
+                                {fee.semester && <p className="text-sm text-gray-500">Sem: {fee.semester}</p>}
                                 {fee.dueDate && (
                                     <div className="mt-4 pt-4 border-t border-gray-50 flex items-center text-sm text-red-500 font-medium">
                                         <Calendar className="h-4 w-4 mr-2" />

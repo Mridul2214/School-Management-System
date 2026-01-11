@@ -22,12 +22,19 @@ const getStudents = asyncHandler(async (req, res) => {
     const { department, semester } = req.query;
     let query = { role: 'Student' };
 
-    if (department && department !== 'undefined') query.department = department;
+    // If Staff, restrict to their department
+    if (req.user.role === 'Staff') {
+        if (req.user.department) {
+            query.department = req.user.department;
+        }
+    } else if (department && department !== 'undefined') {
+        query.department = department;
+    }
+
     if (semester && semester !== 'undefined') query.semester = Number(semester);
 
     const students = await User.find(query)
-        .populate('department', 'name')
-        .populate('course', 'name code');
+        .populate('department', 'name');
 
     res.json(students);
 });
@@ -50,6 +57,19 @@ const getDepartmentStaff = asyncHandler(async (req, res) => {
     }).populate('department', 'name').select('-password');
 
     res.json(staff);
+});
+
+// @desc    Get current user profile
+// @route   GET /api/users/profile
+// @access  Private
+const getProfile = asyncHandler(async (req, res) => {
+    const user = await User.findById(req.user._id).populate('department', 'name');
+    if (user) {
+        res.json(user);
+    } else {
+        res.status(404);
+        throw new Error('User not found');
+    }
 });
 
 // @desc    Update profile
@@ -170,7 +190,6 @@ const updateUser = asyncHandler(async (req, res) => {
 
         if (user.role === 'Student') {
             if (req.body.department !== undefined) user.department = cleanId(req.body.department);
-            if (req.body.course !== undefined) user.course = cleanId(req.body.course);
             if (req.body.semester !== undefined) user.semester = Number(req.body.semester);
         }
 
@@ -203,4 +222,4 @@ const updateUser = asyncHandler(async (req, res) => {
     }
 });
 
-module.exports = { getUsers, getStudents, getDepartmentStaff, updateUserProfile: updateProfile, updateUser, getUserById, deleteUser };
+module.exports = { getUsers, getStudents, getDepartmentStaff, getProfile, updateUserProfile: updateProfile, updateUser, getUserById, deleteUser };

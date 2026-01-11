@@ -6,7 +6,7 @@ import clsx from 'clsx';
 
 const ExamManager = () => {
     const [exams, setExams] = useState([]);
-    const [courses, setCourses] = useState([]);
+    const [departments, setDepartments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isAdding, setIsAdding] = useState(false);
 
@@ -14,7 +14,7 @@ const ExamManager = () => {
     const [newExam, setNewExam] = useState({
         name: '',
         type: 'Monthly Test',
-        course: '',
+        department: '',
         semester: 1,
         startDate: '',
         endDate: ''
@@ -22,7 +22,7 @@ const ExamManager = () => {
 
     useEffect(() => {
         fetchExams();
-        fetchCourses();
+        fetchDepartments();
     }, []);
 
     const fetchExams = async () => {
@@ -36,12 +36,12 @@ const ExamManager = () => {
         }
     };
 
-    const fetchCourses = async () => {
+    const fetchDepartments = async () => {
         try {
-            const { data } = await api.get('/courses');
-            setCourses(data);
+            const { data } = await api.get('/departments');
+            setDepartments(data);
         } catch (error) {
-            console.error("Failed to fetch courses", error);
+            console.error("Failed to fetch departments", error);
         }
     };
 
@@ -54,7 +54,7 @@ const ExamManager = () => {
             setNewExam({
                 name: '',
                 type: 'Monthly Test',
-                course: '',
+                department: '',
                 semester: 1,
                 startDate: '',
                 endDate: ''
@@ -113,15 +113,15 @@ const ExamManager = () => {
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2">Course</label>
+                            <label className="block text-sm font-bold text-gray-700 mb-2">Department</label>
                             <select
                                 required
-                                value={newExam.course}
-                                onChange={(e) => setNewExam({ ...newExam, course: e.target.value })}
+                                value={newExam.department}
+                                onChange={(e) => setNewExam({ ...newExam, department: e.target.value })}
                                 className="input-field"
                             >
-                                <option value="">Select Course</option>
-                                {courses.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                                <option value="">Select Department</option>
+                                {departments.map(d => <option key={d._id} value={d._id}>{d.name}</option>)}
                             </select>
                         </div>
                         <div>
@@ -131,8 +131,8 @@ const ExamManager = () => {
                                 required
                                 min="1"
                                 max="8"
-                                value={newExam.semester}
-                                onChange={(e) => setNewExam({ ...newExam, semester: parseInt(e.target.value) })}
+                                value={newExam.semester || ''}
+                                onChange={(e) => setNewExam({ ...newExam, semester: e.target.value === '' ? '' : parseInt(e.target.value) })}
                                 className="input-field"
                             />
                         </div>
@@ -197,7 +197,7 @@ const ExamManager = () => {
                             </div>
                             <h3 className="text-lg font-black text-gray-900 mb-1">{exam.name}</h3>
                             <p className="text-xs font-bold text-gray-400 uppercase tracking-tighter mb-4">
-                                {exam.type} • {exam.course?.name} • Sem {exam.semester}
+                                {exam.type} • {exam.department?.name} • Sem {exam.semester}
                             </p>
 
                             <div className="space-y-3 pt-4 border-t border-gray-50">

@@ -20,7 +20,7 @@ const Register = () => {
 
     // Dropdown Data
     const [departments, setDepartments] = useState([]);
-    const [courses, setCourses] = useState([]);
+    // courses removed (cleaned up)
 
     const [formData, setFormData] = useState({
         role: 'Student',
@@ -30,7 +30,7 @@ const Register = () => {
         password: '',
         userId: '',
         department: '',
-        course: '',
+        // course: '', removed
         semester: '1',
         designation: '',
     });
@@ -38,12 +38,10 @@ const Register = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [deptRes, courseRes] = await Promise.all([
-                    api.get('/departments'),
-                    api.get('/courses')
+                const [deptRes] = await Promise.all([
+                    api.get('/departments')
                 ]);
                 setDepartments(deptRes.data);
-                setCourses(courseRes.data);
             } catch (error) {
                 console.error("Failed to load dependency data");
             }
@@ -106,8 +104,8 @@ const Register = () => {
 
     return (
         <div className="min-h-screen bg-[#f8fafc] flex flex-col lg:flex-row shadow-inner">
-            {/* Left Side: Branding/Info */}
-            <div className="lg:w-1/3 bg-primary-600 p-8 lg:p-12 text-white flex flex-col justify-between relative overflow-hidden">
+            {/* Left Side: Branding/Info - HIDDEN ON MOBILE */}
+            <div className="hidden lg:flex lg:w-1/3 bg-primary-600 p-8 lg:p-12 text-white flex-col justify-between relative overflow-hidden">
                 <div className="relative z-10">
                     <Link to="/" className="flex items-center space-x-2 text-white/90 hover:text-white transition-colors mb-12">
                         <ArrowLeft className="h-5 w-5" />
@@ -301,23 +299,8 @@ const Register = () => {
                                     </div>
 
                                     {formData.role === 'Student' ? (
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <label className="text-sm font-bold text-slate-700 ml-1">Course</label>
-                                                <select
-                                                    name="course"
-                                                    required
-                                                    value={formData.course}
-                                                    onChange={handleChange}
-                                                    className="w-full px-4 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500"
-                                                    disabled={!formData.department}
-                                                >
-                                                    <option value="">Select Course</option>
-                                                    {courses.filter(c => !formData.department || c.department?._id === formData.department || c.department === formData.department).map(course => (
-                                                        <option key={course._id} value={course._id}>{course.name}</option>
-                                                    ))}
-                                                </select>
-                                            </div>
+                                        <div className="grid grid-cols-1 gap-4">
+                                            {/* Course selection removed as per requirement */}
                                             <div className="space-y-2">
                                                 <label className="text-sm font-bold text-slate-700 ml-1">Semester</label>
                                                 <input

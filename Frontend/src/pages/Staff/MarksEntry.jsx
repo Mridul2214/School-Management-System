@@ -39,11 +39,23 @@ const MarksEntry = () => {
         if (!selectedExam || !selectedSubject) return;
         setLoading(true);
         try {
-            // Find exam details to get courseId
+            // Find exam details to get departmentId
             const exam = exams.find(e => e._id === selectedExam);
 
-            // 1. Fetch Students for this course/semester
-            const studentsRes = await api.get(`/attendance/students?courseId=${exam.course._id}&semester=${exam.semester}`);
+            if (!exam) {
+                console.error("Exam details not found in local state");
+                return;
+            }
+
+            if (!exam.department) {
+                alert("This exam is missing department information. Please update it in Exam Manager.");
+                return;
+            }
+
+            const departmentId = exam.department?._id || exam.department;
+
+            // 1. Fetch Students for this department/semester
+            const studentsRes = await api.get(`/attendance/students?departmentId=${departmentId}&semester=${exam.semester}`);
             const fetchedStudents = studentsRes.data;
             setStudents(fetchedStudents);
 

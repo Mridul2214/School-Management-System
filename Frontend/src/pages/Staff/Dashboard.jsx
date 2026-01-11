@@ -22,8 +22,24 @@ const StaffDashboard = () => {
         pendingAttendances: 0
     });
     const [loading, setLoading] = useState(true);
-
+    const [attendanceMarked, setAttendanceMarked] = useState(false);
     const [todaySchedule, setTodaySchedule] = useState([]);
+
+    const handleMarkAttendance = async () => {
+        try {
+            await api.post('/staff-attendance/mark-self');
+            setAttendanceMarked(true);
+            alert("Attendance marked successfully!");
+        } catch (error) {
+            console.error("Attendance mark failed", error);
+            if (error.response?.data?.message?.includes('already marked')) {
+                setAttendanceMarked(true); // Sync state
+                alert("You have already marked attendance for today.");
+            } else {
+                alert("Failed to mark attendance. Try again.");
+            }
+        }
+    };
 
     useEffect(() => {
         const fetchDashboardData = async () => {
@@ -141,8 +157,35 @@ const StaffDashboard = () => {
                     </div>
                 </div>
 
-                {/* Notifications/Recent Activities */}
+                {/* Right Column: Attendance & Notifications */}
                 <div className="space-y-6">
+                    {/* Attendance Widget */}
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full blur-3xl -mr-16 -mt-16 transition-opacity opacity-50"></div>
+
+                        <div className="relative z-10">
+                            <h2 className="text-lg font-bold text-gray-900 mb-2">Daily Attendance</h2>
+                            <p className="text-sm text-gray-500 mb-6">Mark your presence for today, {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
+
+                            {attendanceMarked ? (
+                                <div className="bg-green-50 border border-green-100 rounded-xl p-4 flex items-center justify-center space-x-2 text-green-700 font-bold">
+                                    <CheckCircle className="h-5 w-5" />
+                                    <span>Checked In</span>
+                                </div>
+                            ) : (
+                                <button
+                                    onClick={handleMarkAttendance}
+                                    disabled={loading}
+                                    className="w-full py-4 bg-gray-900 text-white rounded-xl font-bold shadow-lg shadow-gray-200 hover:bg-gray-800 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center space-x-2"
+                                >
+                                    <Clock className="h-4 w-4" />
+                                    <span>Check In Now</span>
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Notifications */}
                     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                         <div className="flex items-center justify-between mb-6">
                             <h2 className="text-lg font-bold text-gray-900">Recent Updates</h2>

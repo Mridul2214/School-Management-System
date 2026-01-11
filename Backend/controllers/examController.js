@@ -6,12 +6,12 @@ const Mark = require('../models/Mark');
 // @route   POST /api/exams
 // @access  Private (Admin)
 const createExam = asyncHandler(async (req, res) => {
-    const { name, type, course, semester, startDate, endDate } = req.body;
+    const { name, type, department, semester, startDate, endDate } = req.body;
 
     const exam = await Exam.create({
         name,
         type,
-        course,
+        department,
         semester,
         startDate,
         endDate
@@ -24,12 +24,12 @@ const createExam = asyncHandler(async (req, res) => {
 // @route   GET /api/exams
 // @access  Private
 const getExams = asyncHandler(async (req, res) => {
-    const { course, semester } = req.query;
+    const { department, semester } = req.query;
     let query = {};
-    if (course) query.course = course;
+    if (department) query.department = department;
     if (semester) query.semester = semester;
 
-    const exams = await Exam.find(query).populate('course', 'name');
+    const exams = await Exam.find(query).populate('department', 'name code');
     res.json(exams);
 });
 

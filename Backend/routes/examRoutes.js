@@ -11,7 +11,7 @@ const { protect, admin, staff } = require('../middleware/authMiddleware');
 
 router.route('/')
     .get(protect, getExams)
-    .post(protect, admin, createExam);
+    .post(protect, staff, createExam);
 
 router.get('/my-results', protect, getStudentResults);
 

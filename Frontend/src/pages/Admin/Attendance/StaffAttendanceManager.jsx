@@ -31,7 +31,7 @@ const StaffAttendanceManager = () => {
             const newAttendanceMap = {};
             // Default everyone to 'Present'
             fetchedStaff.forEach(s => {
-                newAttendanceMap[s._id] = 'Present';
+                newAttendanceMap[s._id] = 'Absent';
             });
 
             // Overwrite with existing data

@@ -1,15 +1,15 @@
-
 import { useState, useEffect } from 'react';
 import { Calendar, Plus, Trash2, Clock, MapPin, User, BookOpen, Loader2 } from 'lucide-react';
 import api from '../../../api/axios';
+import clsx from 'clsx';
 
 const TimetableManager = () => {
     const [loading, setLoading] = useState(false);
 
     // Filters
-    const [courses, setCourses] = useState([]);
-    const [selectedCourse, setSelectedCourse] = useState('');
-    const [selectedSemester, setSelectedSemester] = useState('');
+    const [departments, setDepartments] = useState([]);
+    const [selectedDepartment, setSelectedDepartment] = useState('');
+    const [selectedSemester, setSelectedSemester] = useState('1');
 
     // Data for Modal
     const [subjects, setSubjects] = useState([]);
@@ -17,6 +17,7 @@ const TimetableManager = () => {
 
     // Timetable Data
     const [timetable, setTimetable] = useState([]);
+    const [isPublished, setIsPublished] = useState(false);
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -30,39 +31,31 @@ const TimetableManager = () => {
     });
 
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const timeSlots = [
-        "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00"
-    ];
 
     useEffect(() => {
         fetchInitialData();
         fetchTeachers();
+        fetchSubjects();
     }, []);
 
     useEffect(() => {
-        if (selectedCourse && selectedSemester) {
+        if (selectedDepartment && selectedSemester) {
             fetchTimetable();
         }
-    }, [selectedCourse, selectedSemester]);
-
-    useEffect(() => {
-        if (selectedCourse) {
-            fetchSubjects(selectedCourse);
-        }
-    }, [selectedCourse]);
+    }, [selectedDepartment, selectedSemester]);
 
     const fetchInitialData = async () => {
         try {
-            const res = await api.get('/courses');
-            setCourses(res.data);
+            const res = await api.get('/departments');
+            setDepartments(res.data);
         } catch (error) {
             console.error(error);
         }
     };
 
-    const fetchSubjects = async (courseId) => {
+    const fetchSubjects = async () => {
         try {
-            const res = await api.get(`/subjects?courseId=${courseId}`);
+            const res = await api.get(`/subjects`);
             setSubjects(res.data);
         } catch (error) {
             console.error(error);
@@ -71,11 +64,8 @@ const TimetableManager = () => {
 
     const fetchTeachers = async () => {
         try {
-            // Assuming we have an endpoint or filter for getting staff members
-            // For now fetching all users and filtering on frontend or use specific logic
-            // Ideally: api.get('/users?role=Staff')
             const res = await api.get('/users');
-            const staff = res.data.filter(u => u.role === 'Staff');
+            const staff = res.data.filter(u => u.role === 'Staff' || u.role === 'Administrator');
             setTeachers(staff);
         } catch (error) {
             console.error(error);
@@ -85,8 +75,10 @@ const TimetableManager = () => {
     const fetchTimetable = async () => {
         setLoading(true);
         try {
-            const res = await api.get(`/timetable?courseId=${selectedCourse}&semester=${selectedSemester}`);
+            const res = await api.get(`/timetable?departmentId=${selectedDepartment}&semester=${selectedSemester}`);
             setTimetable(res.data);
+            // Check if any entry is published (assuming all for a dept/sem are synced)
+            setIsPublished(res.data.length > 0 ? res.data[0].isPublished : false);
         } catch (error) {
             console.error(error);
         } finally {
@@ -110,30 +102,44 @@ const TimetableManager = () => {
         try {
             await api.post('/timetable', {
                 ...formData,
-                course: selectedCourse,
+                department: selectedDepartment,
                 semester: selectedSemester
             });
             setIsModalOpen(false);
             fetchTimetable();
-            // Reset form partly
             setFormData(prev => ({ ...prev, startTime: '', endTime: '', subject: '', teacher: '', roomNumber: '' }));
         } catch (error) {
             alert(error.response?.data?.message || 'Failed to add entry');
         }
     };
 
+    const handlePublishToggle = async (publish) => {
+        try {
+            await api.put('/timetable/publish', {
+                departmentId: selectedDepartment,
+                semester: selectedSemester,
+                publish
+            });
+            setIsPublished(publish);
+            alert(`Timetable ${publish ? 'Published' : 'Unpublished'} successfully!`);
+            fetchTimetable();
+        } catch (error) {
+            alert('Failed to update publish status');
+        }
+    };
+
     const handleAutoGenerate = async () => {
-        if (!selectedCourse || !selectedSemester) return alert("Select Course and Semester first");
+        if (!selectedDepartment || !selectedSemester) return alert("Select Department and Semester first");
         if (!window.confirm("This will overwrite the existing timetable for this semester. Continue?")) return;
 
         setLoading(true);
         try {
-            await api.post('/timetable/generate', { courseId: selectedCourse, semester: selectedSemester });
+            await api.post('/timetable/generate', { departmentId: selectedDepartment, semester: selectedSemester });
             fetchTimetable();
             alert("Timetable Auto-Generated Successfully!");
         } catch (error) {
             console.error(error);
-            alert(error.response?.data?.message || "Generation Failed. Ensure Subjects have assigned Faculty.");
+            alert(error.response?.data?.message || "Generation Failed.");
         } finally {
             setLoading(false);
         }
@@ -144,21 +150,37 @@ const TimetableManager = () => {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Timetable Manager</h1>
-                    <p className="text-gray-500">Schedule classes and manage routines</p>
+                    <p className="text-gray-500 font-medium flex items-center">
+                        Schedule up to 6 classes per day
+                        {isPublished ? (
+                            <span className="ml-3 px-2 py-0.5 bg-green-100 text-green-700 text-[10px] font-bold uppercase rounded-full">Published</span>
+                        ) : (
+                            <span className="ml-3 px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold uppercase rounded-full">Draft</span>
+                        )}
+                    </p>
                 </div>
-                {selectedCourse && selectedSemester && (
+                {selectedDepartment && selectedSemester && (
                     <div className="flex gap-2">
+                        <button
+                            onClick={() => handlePublishToggle(!isPublished)}
+                            className={clsx(
+                                "px-4 py-2 rounded-lg font-medium flex items-center transition",
+                                isPublished ? "bg-amber-100 text-amber-700 hover:bg-amber-200" : "bg-green-600 text-white hover:bg-green-700 shadow-md"
+                            )}
+                        >
+                            <Calendar className="h-4 w-4 mr-2" />
+                            {isPublished ? 'Unpublish' : 'Publish Timetable'}
+                        </button>
                         <button
                             onClick={handleAutoGenerate}
                             className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium flex items-center transition"
                             disabled={loading}
                         >
-                            <Calendar className="h-4 w-4 mr-2" />
                             Auto Generate
                         </button>
                         <button
                             onClick={() => setIsModalOpen(true)}
-                            className="btn-primary flex items-center"
+                            className="btn-primary flex items-center shadow-lg shadow-blue-200"
                         >
                             <Plus className="h-4 w-4 mr-2" />
                             Add Class
@@ -170,35 +192,35 @@ const TimetableManager = () => {
             {/* Selection Bar */}
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-4 items-end">
                 <div className="flex-1 w-full">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Course</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
                     <select
-                        value={selectedCourse}
-                        onChange={(e) => setSelectedCourse(e.target.value)}
+                        value={selectedDepartment}
+                        onChange={(e) => setSelectedDepartment(e.target.value)}
                         className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition"
                     >
-                        <option value="">Select Course</option>
-                        {courses.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                        <option value="">Select Department</option>
+                        {departments.map(d => <option key={d._id} value={d._id}>{d.name}</option>)}
                     </select>
                 </div>
                 <div className="flex-1 w-full">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Semester</label>
-                    <input
-                        type="number"
-                        min="1"
-                        max="8"
-                        placeholder="e.g. 1"
+                    <select
                         value={selectedSemester}
                         onChange={(e) => setSelectedSemester(e.target.value)}
                         className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition"
-                    />
+                    >
+                        {[1, 2, 3, 4, 5, 6, 7, 8].map(sem => (
+                            <option key={sem} value={sem}>Semester {sem}</option>
+                        ))}
+                    </select>
                 </div>
             </div>
 
             {/* Timetable Grid */}
-            {!selectedCourse || !selectedSemester ? (
+            {!selectedDepartment || !selectedSemester ? (
                 <div className="text-center py-20 bg-gray-50 rounded-xl border border-dashed border-gray-300">
                     <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500">Please select a Course and Semester to view the timetable.</p>
+                    <p className="text-gray-500">Please select a Department and Semester to view the timetable.</p>
                 </div>
             ) : loading ? (
                 <div className="flex justify-center py-20">

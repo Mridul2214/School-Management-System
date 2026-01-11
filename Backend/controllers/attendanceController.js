@@ -6,7 +6,7 @@ const { Student } = require('../models/User');
 // @route   POST /api/attendance
 // @access  Private (Admin/Staff)
 const markAttendance = asyncHandler(async (req, res) => {
-    const { date, courseId, subjectId, records } = req.body; // records: [{ studentId, status }]
+    const { date, departmentId, subjectId, records } = req.body; // records: [{ studentId, status }]
 
     if (!records || records.length === 0) {
         res.status(400);
@@ -16,7 +16,7 @@ const markAttendance = asyncHandler(async (req, res) => {
     const attendanceData = records.map(record => ({
         date: new Date(date),
         student: record.studentId,
-        course: courseId,
+        department: departmentId,
         subject: subjectId,
         status: record.status,
         markedBy: req.user._id
@@ -40,28 +40,28 @@ const markAttendance = asyncHandler(async (req, res) => {
 // @route   GET /api/attendance
 // @access  Private
 const getAttendance = asyncHandler(async (req, res) => {
-    const { date, courseId, subjectId } = req.query;
+    const { date, departmentId, subjectId } = req.query;
 
     let query = {};
     if (date) query.date = new Date(date);
-    if (courseId) query.course = courseId;
+    if (departmentId) query.department = departmentId;
     if (subjectId) query.subject = subjectId;
 
     const attendance = await Attendance.find(query)
         .populate('student', 'firstName lastName userId')
-        .sort({ 'student.firstName': 1 }); // Sort by student name does not work directly with populate this way in simple find, usually needs aggregation, but basic find is okay for now.
+        .sort({ 'student.firstName': 1 });
 
     res.json(attendance);
 });
 
-// @desc    Get students for attendance marking (Filter by Course)
+// @desc    Get students for attendance marking (Filter by Department/Semester)
 // @route   GET /api/attendance/students
 // @access  Private
 const getStudentsForAttendance = asyncHandler(async (req, res) => {
-    const { courseId, semester } = req.query;
+    const { departmentId, semester } = req.query;
 
     let query = {};
-    if (courseId) query.course = courseId;
+    if (departmentId) query.department = departmentId;
     if (semester) query.semester = semester;
 
     const students = await Student.find(query).select('_id firstName lastName userId rollNumber');

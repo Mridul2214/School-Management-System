@@ -14,7 +14,7 @@ import { useAuth } from '../../context/AuthContext';
 import api from '../../api/axios';
 
 const StudentDashboard = () => {
-    const { user } = useAuth();
+    const { user, setUser } = useAuth(); // Get setUser to update context with live data
     const [loading, setLoading] = useState(true);
     const [todaySchedule, setTodaySchedule] = useState([]);
     const [studentData, setStudentData] = useState({
@@ -27,6 +27,21 @@ const StudentDashboard = () => {
     useEffect(() => {
         const fetchDashboardData = async () => {
             try {
+                // 1. Fetch latest profile to ensure Semester/Dept are correct
+                const profileRes = await api.get('/users/profile');
+                if (profileRes.data) {
+                    const d = profileRes.data;
+                    // Update the auth context with latest data from DB
+                    const updatedUser = {
+                        ...user,
+                        ...d,
+                        name: `${d.firstName} ${d.lastName}` // Ensure name is flattened like in login
+                    };
+                    setUser(updatedUser);
+                    localStorage.setItem('user', JSON.stringify(updatedUser));
+                }
+
+                // 2. Fetch timetable
                 const { data } = await api.get('/timetable/my-timetable');
                 const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
                 const filtered = data.filter(item => item.day === today);
@@ -60,9 +75,9 @@ const StudentDashboard = () => {
                     <div>
                         <h1 className="text-3xl font-bold">Hello, {user?.name}!</h1>
                         <p className="text-primary-100 mt-1 flex items-center">
-                            <span className="opacity-80">B.Tech Computer Science</span>
+                            <span className="opacity-80">{user?.department?.name || 'Department Not Set'}</span>
                             <span className="mx-2 text-white/40">•</span>
-                            <span className="opacity-80">Semester 4</span>
+                            <span className="opacity-80">Semester {user?.semester || '1'}</span>
                         </p>
                     </div>
                     <div className="md:ml-auto flex gap-4">

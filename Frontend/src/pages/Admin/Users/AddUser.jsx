@@ -11,7 +11,6 @@ const AddUser = () => {
 
     // Dropdown Data
     const [departments, setDepartments] = useState([]);
-    const [courses, setCourses] = useState([]);
 
     const [formData, setFormData] = useState({
         role: 'Staff', // Changed default
@@ -29,12 +28,10 @@ const AddUser = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [deptRes, courseRes] = await Promise.all([
-                    api.get('/departments'),
-                    api.get('/courses')
+                const [deptRes] = await Promise.all([
+                    api.get('/departments')
                 ]);
                 setDepartments(deptRes.data);
-                setCourses(courseRes.data);
             } catch (error) {
                 console.error("Failed to load form data");
             }
@@ -59,10 +56,6 @@ const AddUser = () => {
             setLoading(false);
         }
     };
-
-    const filteredCourses = formData.department
-        ? courses.filter(c => c.department && c.department._id === formData.department)
-        : courses;
 
     return (
         <div className="form-container">

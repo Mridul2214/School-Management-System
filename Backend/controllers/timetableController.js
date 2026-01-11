@@ -1,18 +1,27 @@
 const asyncHandler = require('express-async-handler');
 const Timetable = require('../models/Timetable');
+const { User } = require('../models/User');
+const Subject = require('../models/Subject');
 
-// @desc    Get timetable for a specific course and semester
+// @desc    Get timetable for a specific department and semester
 // @route   GET /api/timetable
 // @access  Private
 const getTimetable = asyncHandler(async (req, res) => {
-    const { courseId, semester } = req.query;
+    const { departmentId, semester } = req.query;
 
-    if (!courseId || !semester) {
+    if (!departmentId || !semester) {
         res.status(400);
-        throw new Error('Please provide courseId and semester');
+        throw new Error('Please provide departmentId and semester');
     }
 
-    const timetable = await Timetable.find({ course: courseId, semester })
+    let filter = { department: departmentId, semester };
+
+    // Students only see published timetable
+    if (req.user.role === 'Student') {
+        filter.isPublished = true;
+    }
+
+    const timetable = await Timetable.find(filter)
         .populate('subject', 'name code')
         .populate('teacher', 'firstName lastName')
         .sort({ day: 1, startTime: 1 });
@@ -24,25 +33,18 @@ const getTimetable = asyncHandler(async (req, res) => {
 // @route   GET /api/timetable/my-timetable
 // @access  Private (Student)
 const getMyTimetable = asyncHandler(async (req, res) => {
-    // If mocking, we might not have course/semester in req.user unless we mock it or pass it.
-    // For a real student, we fetch from their record.
     const { Student } = require('../models/User');
     const student = await Student.findById(req.user._id);
 
-    if (!student || !student.course) {
-        // Fallback or demo mode: try to get from query or return empty
-        const { courseId, semester } = req.query;
-        if (courseId && semester) {
-            const timetable = await Timetable.find({ course: courseId, semester })
-                .populate('subject', 'name code')
-                .populate('teacher', 'firstName lastName')
-                .sort({ day: 1, startTime: 1 });
-            return res.json(timetable);
-        }
+    if (!student || !student.department) {
         return res.json([]);
     }
 
-    const timetable = await Timetable.find({ course: student.course, semester: student.semester })
+    const timetable = await Timetable.find({
+        department: student.department,
+        semester: student.semester,
+        isPublished: true
+    })
         .populate('subject', 'name code')
         .populate('teacher', 'firstName lastName')
         .sort({ day: 1, startTime: 1 });
@@ -52,22 +54,23 @@ const getMyTimetable = asyncHandler(async (req, res) => {
 
 // @desc    Add a new timetable entry
 // @route   POST /api/timetable
-// @access  Private (Admin)
+// @access  Private (Admin/Staff)
 const addTimetableEntry = asyncHandler(async (req, res) => {
-    const { course, semester, day, startTime, endTime, subject, teacher, roomNumber } = req.body;
+    const { department, semester, day, startTime, endTime, subject, teacher, roomNumber } = req.body;
 
-    // Basic validation handled by Mongoose schema, but we can add logical checks here
-    // e.g., endTime > startTime
+    // Check if this timetable (dept + sem) is already published
+    const existingPublished = await Timetable.findOne({ department, semester, isPublished: true });
 
     const entry = await Timetable.create({
-        course,
+        department,
         semester,
         day,
         startTime,
         endTime,
         subject,
         teacher,
-        roomNumber
+        roomNumber,
+        isPublished: !!existingPublished // Inherit publication status
     });
 
     const populatedEntry = await Timetable.findById(entry._id)
@@ -79,12 +82,12 @@ const addTimetableEntry = asyncHandler(async (req, res) => {
 
 // @desc    Delete a timetable entry
 // @route   DELETE /api/timetable/:id
-// @access  Private (Admin)
+// @access  Private (Admin/Staff)
 const deleteTimetableEntry = asyncHandler(async (req, res) => {
     const entry = await Timetable.findById(req.params.id);
 
     if (entry) {
-        await entry.remove();
+        await entry.deleteOne();
         res.json({ message: 'Timetable entry removed' });
     } else {
         res.status(404);
@@ -92,95 +95,74 @@ const deleteTimetableEntry = asyncHandler(async (req, res) => {
     }
 });
 
+// @desc    Publish/Unpublish timetable for a dept/sem
+// @route   PUT /api/timetable/publish
+// @access  Private (Admin/Staff)
+const togglePublishTimetable = asyncHandler(async (req, res) => {
+    const { departmentId, semester, publish } = req.body;
+
+    await Timetable.updateMany(
+        { department: departmentId, semester },
+        { isPublished: publish }
+    );
+
+    res.json({ message: `Timetable ${publish ? 'published' : 'unpublished'} successfully` });
+});
+
 // @desc    Auto Generate Timetable
 // @route   POST /api/timetable/generate
 // @access  Private (Admin)
 const generateAutoTimetable = asyncHandler(async (req, res) => {
-    const { courseId, semester } = req.body;
+    const { departmentId, semester } = req.body;
 
-    // 1. Clear existing timetable for this course/sem
-    await Timetable.deleteMany({ course: courseId, semester });
+    // 1. Clear existing timetable for this dept/sem
+    await Timetable.deleteMany({ department: departmentId, semester });
 
-    // 2. Fetch Subjects
-    const Subject = require('../models/Subject');
-    const subjects = await Subject.find({ course: courseId, semester }).populate('faculty');
+    // 2. Fetch Subjects (Filtered by department and semester)
+    const subjects = await Subject.find({ department: departmentId, semester });
 
     if (!subjects || subjects.length === 0) {
         res.status(400);
-        throw new Error('No subjects found for this course and semester');
+        throw new Error('No subjects found for this department and semester');
     }
 
-    // 3. Define Constraints
+    // 3. Define Constraints (6 classes per day)
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-    const timeSlots = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00"]; // Skip 12:00 lunch
-    const defaultRoom = "101-A"; // Simplified: Assume this class stays in one room
+    const timeSlots = [
+        { start: '09:00', end: '10:00' },
+        { start: '10:00', end: '11:00' },
+        { start: '11:00', end: '12:00' },
+        { start: '13:00', end: '14:00' },
+        { start: '14:00', end: '15:00' },
+        { start: '15:00', end: '16:00' }
+    ];
 
     const generatedEntries = [];
-    const classesPerSubject = 4; // Target classes per week per subject
+    let subjectIndex = 0;
 
-    // Helper: Check strict teacher availability from DB
-    // Note: In a real "Auto" generator, checking DB in loop is slow, but safe for low volume.
-    // For high volume, we'd fetch all teacher schedules first.
-
-    // We will simple-shuffle and fill
-    let slotPool = [];
-    for (let d of days) {
-        for (let t of timeSlots) {
-            slotPool.push({ day: d, time: t });
-        }
-    }
-
-    // Shuffle slots for randomness
-    slotPool.sort(() => Math.random() - 0.5);
-
-    let slotIndex = 0;
-
-    for (const sub of subjects) {
-        if (!sub.faculty) continue; // Skip subjects without assigned faculty
-
-        let allocated = 0;
-        while (allocated < classesPerSubject && slotIndex < slotPool.length) {
-            const slot = slotPool[slotIndex]; // Try next available slot
-
-            // Check if teacher is free (globally) at this slot
-            const teacherBusy = await Timetable.findOne({
-                teacher: sub.faculty._id,
-                day: slot.day,
-                startTime: slot.time
-            });
-
-            // Check if this class/room is free (already handled by slot iteration for class, but check room if generic)
-            // For now, we assume this Course+Sem owns 'defaultRoom' exclusively or we don't check room conflicts heavily here.
-
-            if (!teacherBusy) {
-                // Determine EndTime (assume 1 hour)
-                const [h, m] = slot.time.split(':').map(Number);
-                const endTime = `${h + 1 < 10 ? '0' : ''}${h + 1}:${m === 0 ? '00' : m}`;
-
+    for (const day of days) {
+        for (let i = 0; i < timeSlots.length; i++) {
+            const sub = subjects[subjectIndex % subjects.length];
+            if (sub && sub.faculty) {
                 generatedEntries.push({
-                    course: courseId,
+                    department: departmentId,
                     semester,
-                    day: slot.day,
-                    startTime: slot.time,
-                    endTime,
+                    day,
+                    startTime: timeSlots[i].start,
+                    endTime: timeSlots[i].end,
                     subject: sub._id,
-                    teacher: sub.faculty._id,
-                    roomNumber: defaultRoom
+                    teacher: sub.faculty,
+                    roomNumber: `Room ${101 + i}`
                 });
-                allocated++;
             }
-
-            // Move to next slot chance regardless (simplistic greedy)
-            // In a better algo, we'd retry this subject if failed.
-            slotIndex++;
+            subjectIndex++;
         }
     }
 
     if (generatedEntries.length > 0) {
         await Timetable.insertMany(generatedEntries);
 
-        // Return full populated list
-        const fullTimetable = await Timetable.find({ course: courseId, semester })
+        const fullTimetable = await Timetable.find({ department: departmentId, semester })
             .populate('subject', 'name code')
             .populate('teacher', 'firstName lastName')
             .sort({ day: 1, startTime: 1 });
@@ -188,7 +170,7 @@ const generateAutoTimetable = asyncHandler(async (req, res) => {
         res.status(201).json(fullTimetable);
     } else {
         res.status(400);
-        throw new Error('Could not generate timetable (Check if Subjects have configured Faculty)');
+        throw new Error('Could not generate timetable. Ensure subjects have assigned faculty.');
     }
 });
 
@@ -198,11 +180,18 @@ const generateAutoTimetable = asyncHandler(async (req, res) => {
 const getStaffSchedule = asyncHandler(async (req, res) => {
     const timetable = await Timetable.find({ teacher: req.user._id })
         .populate('subject', 'name code')
-        .populate('course', 'name')
         .sort({ day: 1, startTime: 1 });
 
     res.json(timetable);
 });
 
-module.exports = { getTimetable, getMyTimetable, getStaffSchedule, addTimetableEntry, deleteTimetableEntry, generateAutoTimetable };
+module.exports = {
+    getTimetable,
+    getMyTimetable,
+    getStaffSchedule,
+    addTimetableEntry,
+    deleteTimetableEntry,
+    generateAutoTimetable,
+    togglePublishTimetable
+};
 

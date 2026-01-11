@@ -2,9 +2,9 @@ const mongoose = require('mongoose');
 
 const timetableSchema = new mongoose.Schema(
     {
-        course: {
+        department: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'Course',
+            ref: 'Department',
             required: true
         },
         semester: {
@@ -37,6 +37,10 @@ const timetableSchema = new mongoose.Schema(
         roomNumber: {
             type: String,
             required: true
+        },
+        isPublished: {
+            type: Boolean,
+            default: false
         }
     },
     {
@@ -50,8 +54,8 @@ timetableSchema.index({ teacher: 1, day: 1, startTime: 1 }, { unique: true });
 // Compound index to ensure no double booking for a room at the same time and day
 timetableSchema.index({ roomNumber: 1, day: 1, startTime: 1 }, { unique: true });
 
-// Compound index to ensure a class (course+sem) doesn't have two subjects at once
-timetableSchema.index({ course: 1, semester: 1, day: 1, startTime: 1 }, { unique: true });
+// Compound index to ensure a class (dept+sem) doesn't have two subjects at once
+timetableSchema.index({ department: 1, semester: 1, day: 1, startTime: 1 }, { unique: true });
 
 const Timetable = mongoose.model('Timetable', timetableSchema);
 

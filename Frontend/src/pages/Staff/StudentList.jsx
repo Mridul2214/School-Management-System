@@ -117,10 +117,7 @@ const StudentList = () => {
                                 </div>
 
                                 <div className="mt-6 space-y-3 relative z-10">
-                                    <div className="flex items-center text-sm text-gray-500 font-medium gap-3">
-                                        <BookOpen className="h-4 w-4 text-primary-400" />
-                                        <span>{student.course?.name || 'No Course'}</span>
-                                    </div>
+                                    {/* Course display removed */}
                                     <div className="flex items-center text-sm text-gray-500 font-medium gap-3">
                                         <Mail className="h-4 w-4 text-primary-400" />
                                         <span className="truncate">{student.email}</span>

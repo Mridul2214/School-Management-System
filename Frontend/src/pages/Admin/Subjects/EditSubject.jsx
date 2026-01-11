@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import api from '../../../api/axios';
 
-const AddSubject = () => {
+const EditSubject = () => {
+    const { id } = useParams();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
+    const [initialLoading, setInitialLoading] = useState(true);
 
     // Dropdown Data
     const [departments, setDepartments] = useState([]);
@@ -26,20 +28,38 @@ const AddSubject = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [deptRes, userRes] = await Promise.all([
+                const [deptRes, userRes, subjectRes] = await Promise.all([
                     api.get('/departments'),
-                    api.get('/users?role=Staff')
+                    api.get('/users?role=Staff'),
+                    api.get(`/subjects/${id}`)
                 ]);
                 setDepartments(deptRes.data);
+                // setCourses removed
 
                 const staffMembers = userRes.data.filter(u => u.role === 'Staff');
                 setStaff(staffMembers);
+
+                const subject = subjectRes.data;
+                setFormData({
+                    name: subject.name,
+                    code: subject.code,
+                    department: subject.department?._id || subject.department,
+                    // course: subject.course?._id || subject.course, removed
+                    semester: subject.semester,
+                    credits: subject.credits,
+                    type: subject.type,
+                    faculty: subject.faculty?._id || subject.faculty || ''
+                });
             } catch (error) {
-                console.error("Failed to load form data");
+                console.error("Failed to load data");
+                alert("Could not load subject details");
+                navigate('/admin/subjects');
+            } finally {
+                setInitialLoading(false);
             }
         };
         fetchData();
-    }, []);
+    }, [id, navigate]);
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -49,24 +69,28 @@ const AddSubject = () => {
         e.preventDefault();
         setLoading(true);
         try {
-            await api.post('/subjects', formData);
+            await api.put(`/subjects/${id}`, formData);
+            alert("Subject updated successfully!");
             navigate('/admin/subjects');
         } catch (error) {
             console.error(error);
-            alert("Failed to create subject. Code might be unique.");
+            alert(error.response?.data?.message || "Failed to update subject.");
         } finally {
             setLoading(false);
         }
     };
 
+    // Filter courses based on selected department
     // filteredCourses removed
+
+    if (initialLoading) return <div className="p-8 text-center text-gray-500">Loading Subject Details...</div>;
 
     return (
         <div className="form-container">
             <div className="mb-6 flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-800">Add Subject</h1>
-                    <p className="text-gray-500 text-sm mt-1">Add a new subject to a course curriculum</p>
+                    <h1 className="text-2xl font-bold text-gray-800">Edit Subject</h1>
+                    <p className="text-gray-500 text-sm mt-1">Update subject curriculum details</p>
                 </div>
                 <button
                     onClick={() => navigate('/admin/subjects')}
@@ -88,7 +112,6 @@ const AddSubject = () => {
                                 required
                                 value={formData.name}
                                 onChange={handleChange}
-                                placeholder="e.g. Data Structures"
                                 className="input-field"
                             />
                         </div>
@@ -100,7 +123,6 @@ const AddSubject = () => {
                                 required
                                 value={formData.code}
                                 onChange={handleChange}
-                                placeholder="e.g. CS101"
                                 className="input-field uppercase"
                             />
                         </div>
@@ -123,7 +145,7 @@ const AddSubject = () => {
                             </select>
                         </div>
 
-                        {/* Course selection removed */}
+                        { /* Course selection removed */}
 
                         <div className="form-group">
                             <label className="form-label">Semester</label>
@@ -133,7 +155,6 @@ const AddSubject = () => {
                                 required
                                 value={formData.semester}
                                 onChange={handleChange}
-                                placeholder="1"
                                 min="1"
                                 className="input-field"
                             />
@@ -147,7 +168,6 @@ const AddSubject = () => {
                                 required
                                 value={formData.credits}
                                 onChange={handleChange}
-                                placeholder="3"
                                 min="0"
                                 className="input-field"
                             />
@@ -200,7 +220,7 @@ const AddSubject = () => {
                             className="btn-primary flex items-center"
                         >
                             {loading && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
-                            Create Subject
+                            Update Subject
                         </button>
                     </div>
                 </form>
@@ -209,4 +229,4 @@ const AddSubject = () => {
     );
 };
 
-export default AddSubject;
+export default EditSubject;

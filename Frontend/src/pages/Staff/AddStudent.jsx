@@ -11,7 +11,7 @@ const AddStudent = () => {
     const [loading, setLoading] = useState(false);
 
     // Dropdown Data
-    const [courses, setCourses] = useState([]);
+    // courses removed
     const [departments, setDepartments] = useState([]);
 
     const [formData, setFormData] = useState({
@@ -22,7 +22,7 @@ const AddStudent = () => {
         password: '',
         userId: '',
         department: '',
-        course: '',
+        // course: '', removed
         semester: '1',
         admissionDate: new Date().toISOString().split('T')[0],
     });
@@ -30,12 +30,10 @@ const AddStudent = () => {
     useEffect(() => {
         const fetchInitialData = async () => {
             try {
-                const [deptRes, courseRes] = await Promise.all([
-                    api.get('/departments'),
-                    api.get('/courses')
+                const [deptRes] = await Promise.all([
+                    api.get('/departments')
                 ]);
                 setDepartments(deptRes.data);
-                setCourses(courseRes.data);
 
                 // If staff member has a department, pre-select it
                 if (user?.department) {
@@ -67,9 +65,7 @@ const AddStudent = () => {
         }
     };
 
-    const filteredCourses = formData.department
-        ? courses.filter(c => (c.department?._id || c.department) === formData.department)
-        : courses;
+    // filteredCourses removed
 
     return (
         <div className="max-w-4xl mx-auto py-8 px-4">
@@ -185,22 +181,7 @@ const AddStudent = () => {
                                     ))}
                                 </select>
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-bold text-gray-700 ml-1">Course</label>
-                                <select
-                                    name="course"
-                                    required
-                                    value={formData.course}
-                                    onChange={handleChange}
-                                    className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all font-medium appearance-none"
-                                    disabled={!formData.department}
-                                >
-                                    <option value="">Select Course</option>
-                                    {filteredCourses.map(course => (
-                                        <option key={course._id} value={course._id}>{course.name} ({course.code})</option>
-                                    ))}
-                                </select>
-                            </div>
+                            { /* Course selection removed */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-sm font-bold text-gray-700 ml-1">Semester</label>
